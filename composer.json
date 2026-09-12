@@ -1,0 +1,15 @@
+{
+    "name": "pedrolois/moodle-local_participants_report_actions",
+    "description": "Adds email, message, login-as, course progress, badges, and a progress export shortcut to the course Participants report.",
+    "type": "moodle-local",
+    "license": "GPL-3.0-or-later",
+    "authors": [
+        {
+            "name": "Pedro Lois",
+            "homepage": "https://github.com/pedrolois"
+        }
+    ],
+    "require": {
+        "composer/installers": "~1.0 || ~2.0"
+    }
+}
