@@ -37,7 +37,6 @@ namespace local_participants_report_actions;
  * @covers \local_participants_report_actions\hook_callbacks
  */
 final class capabilities_test extends \advanced_testcase {
-
     /**
      * All capabilities this plugin defines.
      *

@@ -53,8 +53,10 @@ class participants {
         }
 
         $groupids = 0;
-        if (groups_get_course_groupmode($course) == SEPARATEGROUPS
-                && !has_capability('moodle/site:accessallgroups', $context)) {
+        if (
+            groups_get_course_groupmode($course) == SEPARATEGROUPS
+            && !has_capability('moodle/site:accessallgroups', $context)
+        ) {
             $groupids = array_keys(groups_get_all_groups($course->id, $USER->id, $course->defaultgroupingid, 'g.id'));
             if (empty($groupids)) {
                 return [];

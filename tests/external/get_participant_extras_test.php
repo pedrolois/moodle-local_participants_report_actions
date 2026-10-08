@@ -37,7 +37,6 @@ namespace local_participants_report_actions\external;
  * @covers \local_participants_report_actions\external\get_participant_extras
  */
 final class get_participant_extras_test extends \advanced_testcase {
-
     /**
      * A course with completion enabled and one manually-completable page.
      *

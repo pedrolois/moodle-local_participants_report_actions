@@ -100,8 +100,10 @@ class hook_callbacks {
         // "Download table data as" options, which it never changes. Null
         // adds nothing.
         $exporturl = null;
-        if (get_config('local_participants_report_actions', 'enableexport')
-                && has_capability('local/participants_report_actions:export', $coursecontext)) {
+        if (
+            get_config('local_participants_report_actions', 'enableexport')
+            && has_capability('local/participants_report_actions:export', $coursecontext)
+        ) {
             $url = new \moodle_url('/local/participants_report_actions/export_progress.php', [
                 'id' => $COURSE->id,
                 'sesskey' => sesskey(),

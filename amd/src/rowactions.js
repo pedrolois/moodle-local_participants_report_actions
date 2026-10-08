@@ -535,7 +535,7 @@ const setupProgressDownloadOption = (exporturl, grouplabel) => {
         exportform.submit();
     };
 
-    // core_user/participants calls bulkActionSelect.form.submit() directly
+    // The core_user/participants module calls bulkActionSelect.form.submit() directly
     // (user/amd/src/participants.js) rather than dispatching a click on a
     // submit button. Per the DOM spec, HTMLFormElement.submit() does NOT
     // fire the form's "submit" event - only a real user-initiated

@@ -72,7 +72,7 @@ if (empty($userids)) {
     redirect(new moodle_url('/user/index.php', ['id' => $courseid]), get_string('noselectedusers', 'bulkusers'));
 }
 
-list($insql, $inparams) = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
+[$insql, $inparams] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
 $namefields = implode(', ', \core_user\fields::get_name_fields());
 $users = $DB->get_records_select(
     'user',

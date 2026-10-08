@@ -97,7 +97,7 @@ class get_participant_extras extends external_api {
         $showbadges = get_config('local_participants_report_actions', 'enablebadges')
             && has_capability('local/participants_report_actions:viewbadges', $context);
 
-        list($insql, $inparams) = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
+        [$insql, $inparams] = $DB->get_in_or_equal($userids, SQL_PARAMS_NAMED);
 
         // Batch-fetch emails and name fields in one query, same spirit as
         // core's get_users_roles().
