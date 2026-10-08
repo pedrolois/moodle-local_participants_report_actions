@@ -94,11 +94,11 @@ class hook_callbacks {
                 ?: '#025187',
         ];
 
-        // Base URL for our own progress export endpoint. The JS repoints
-        // core's existing "Download table data as" options at this URL
-        // (appending "&dataformat=<name>" per option) instead of adding a
-        // second, duplicate menu group. Null leaves those options alone,
-        // downloading core's normal participants data as usual.
+        // Base URL for our own progress export endpoint. The JS adds a
+        // separate "Download progress data as" group pointing at this URL
+        // (appending "&dataformat=<name>" per option), next to core's own
+        // "Download table data as" options, which it never changes. Null
+        // adds nothing.
         $exporturl = null;
         if (get_config('local_participants_report_actions', 'enableexport')
                 && has_capability('local/participants_report_actions:export', $coursecontext)) {

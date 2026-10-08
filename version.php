@@ -26,7 +26,7 @@
 defined('MOODLE_INTERNAL') || die();
 
 $plugin->component = 'local_participants_report_actions';
-$plugin->version   = 2026082701;
-$plugin->requires  = 2022041900; // Moodle 4.0+.
+$plugin->version   = 2026100800;
+$plugin->requires  = 2024042200; // Moodle 4.4+ (core\hook\output\before_footer_html_generation).
 $plugin->maturity  = MATURITY_STABLE;
-$plugin->release   = '1.0.0';
+$plugin->release   = '1.0.1';

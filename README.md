@@ -3,8 +3,8 @@
 Adds an **"Actions" column** to the course Participants report, with
 one-click shortcuts for email, private messaging, logging in as that
 user, course completion progress (with a per-activity breakdown), and
-earned course badges — plus a progress-aware version of the existing
-"Download table data as" export.
+earned course badges — plus a separate progress export next to core's
+own "Download table data as" options.
 
 ## Overview
 
@@ -26,10 +26,10 @@ messaging, reports, or a separate block.
   activity.
 - **Course badges** — an icon linking to the participant's most recently
   earned course badge.
-- **Progress export** — repoints the existing "Download table data as"
-  options (CSV, xlsx, ODS, …) at a richer export that adds progress
-  percentage and per-activity state, instead of adding a second, separate
-  download menu.
+- **Progress export** — adds a separate "Download progress data as" group
+  (CSV, xlsx, ODS, …) to the "With selected users..." menu, exporting
+  progress percentage and per-activity state for the selected participants.
+  Core's own "Download table data as" options are left unchanged.
 
 ## How it works
 
@@ -84,11 +84,10 @@ Privacy API declaration.
 
 The "Actions" column itself has no server-side extension point in Moodle
 4.5's Participants table, so it's injected client-side. That means it
-does **not** appear if you download the table via a route other than the
-"Download table data as" menu this plugin repoints, and it doesn't
-participate in the table's native column sorting or show/hide-columns
-feature. The progress export above is the workaround for the export case
-specifically.
+does **not** appear in core's own "Download table data as" export, and it
+doesn't participate in the table's native column sorting or
+show/hide-columns feature. The separate progress export above is the
+workaround for the export case specifically.
 
 ## Installation
 
@@ -99,9 +98,22 @@ specifically.
 
 ## Requirements
 
-- Moodle 4.0 or later.
+- Moodle 4.4 or later (uses the `core\hook\output\before_footer_html_generation` hook).
 
 ## Changelog
+
+### 1.0.1
+
+- The progress export and the web service only return data for
+  participants of the course (respecting separate groups mode), and the
+  export now requires the `export` capability and the `enableexport` setting.
+- Emails (send-email icon, progress modal title, and the progress export's
+  email column) are only shown when email is one of the identity fields the
+  current user may see (`showuseridentity` + `moodle/site:viewuseridentity`),
+  the same rule as core's Participants report.
+- The progress export is now its own "Download progress data as" option
+  group instead of replacing core's participant download.
+- Requires Moodle 4.4, the first release with the hook the plugin uses.
 
 ### 1.0.0
 

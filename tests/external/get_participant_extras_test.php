@@ -141,6 +141,27 @@ final class get_participant_extras_test extends \advanced_testcase {
     }
 
     /**
+     * Email follows core's identity rule: hidden when the site does not
+     * show email as a user identity field, even with the capability.
+     */
+    public function test_email_respects_showuseridentity(): void {
+        $this->resetAfterTest(true);
+        ['course' => $course, 'teacher' => $teacher, 'student' => $student] = $this->create_course_with_completion();
+        $context = \context_course::instance($course->id);
+        $this->grant('local/participants_report_actions:sendemail', $this->get_role_id('editingteacher'), $context);
+
+        $this->setUser($teacher);
+
+        set_config('showuseridentity', 'email');
+        $result = get_participant_extras::execute($course->id, [$student->id]);
+        $this->assertSame($student->email, $result[0]['email']);
+
+        set_config('showuseridentity', '');
+        $result = get_participant_extras::execute($course->id, [$student->id]);
+        $this->assertSame('', $result[0]['email']);
+    }
+
+    /**
      * A user is never offered the ability to message themselves.
      */
     public function test_cannot_message_self(): void {
@@ -279,6 +300,60 @@ final class get_participant_extras_test extends \advanced_testcase {
         $result = get_participant_extras::execute($course->id, [$student->id]);
 
         $this->assertSame([], $result[0]['badges']);
+    }
+
+    /**
+     * Users who are not enrolled in the course are never returned, even if
+     * their id is passed in directly.
+     */
+    public function test_non_participants_are_filtered_out(): void {
+        $this->resetAfterTest(true);
+        ['course' => $course, 'teacher' => $teacher, 'student' => $student] = $this->create_course_with_completion();
+        $context = \context_course::instance($course->id);
+        $this->grant('local/participants_report_actions:sendemail', $this->get_role_id('editingteacher'), $context);
+
+        $outsider = $this->getDataGenerator()->create_user();
+
+        $this->setUser($teacher);
+        $result = get_participant_extras::execute($course->id, [$student->id, $outsider->id]);
+
+        $this->assertCount(1, $result);
+        $this->assertEquals($student->id, $result[0]['userid']);
+    }
+
+    /**
+     * In separate groups mode, a teacher without accessallgroups only gets
+     * data for members of their own groups.
+     */
+    public function test_separate_groups_limit_visible_participants(): void {
+        global $DB;
+
+        $this->resetAfterTest(true);
+        ['course' => $course, 'teacher' => $teacher, 'student' => $student] = $this->create_course_with_completion();
+        $generator = $this->getDataGenerator();
+        $context = \context_course::instance($course->id);
+
+        $DB->set_field('course', 'groupmode', SEPARATEGROUPS, ['id' => $course->id]);
+        $DB->set_field('course', 'groupmodeforce', 1, ['id' => $course->id]);
+        $course = get_course($course->id);
+
+        $teacherroleid = $this->get_role_id('editingteacher');
+        assign_capability('moodle/site:accessallgroups', CAP_PROHIBIT, $teacherroleid, $context->id);
+        $context->mark_dirty();
+
+        $othergroupstudent = $generator->create_user();
+        $generator->enrol_user($othergroupstudent->id, $course->id, 'student');
+
+        $group1 = $generator->create_group(['courseid' => $course->id]);
+        $group2 = $generator->create_group(['courseid' => $course->id]);
+        $generator->create_group_member(['groupid' => $group1->id, 'userid' => $teacher->id]);
+        $generator->create_group_member(['groupid' => $group1->id, 'userid' => $student->id]);
+        $generator->create_group_member(['groupid' => $group2->id, 'userid' => $othergroupstudent->id]);
+
+        $this->setUser($teacher);
+        $result = get_participant_extras::execute($course->id, [$student->id, $othergroupstudent->id]);
+
+        $this->assertEquals([$student->id], array_column($result, 'userid'));
     }
 
     /**

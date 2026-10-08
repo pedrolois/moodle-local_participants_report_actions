@@ -29,9 +29,9 @@
  * CSV/Excel/PDF export, and it does not participate in column sorting or
  * the built-in show/hide-columns feature. It is a visual shortcut only.
  *
- * Course progress IS downloadable, though: this module adds a "Download
- * progress data as" option to the existing "With selected users..."
- * dropdown, which submits the selected users' ids to a dedicated endpoint
+ * Course progress IS downloadable, though: this module adds a separate
+ * "Download progress data as" group to the existing "With selected users..."
+ * dropdown (core's own download options are left as they are), which submits the selected users' ids to a dedicated endpoint
  * (export_progress.php) that reuses \core\dataformat::download_data() —
  * the same approach core itself uses for its own "download participants"
  * bulk action, rather than reinventing CSV/xlsx writing.
@@ -245,8 +245,10 @@ const buildCell = (extras, strings, loginasurltemplate, statecolours) => {
 
         if (extras.activities && extras.activities.length) {
             const openModal = () => {
+                // The email is empty when the current user may not see it,
+                // so use the title variant without it rather than "()".
                 getStrings([{
-                    key: 'progressbartitle',
+                    key: extras.email ? 'progressbartitle' : 'progressbartitlenoemail',
                     component: 'local_participants_report_actions',
                     param: {
                         fullname: extras.fullname,
@@ -464,51 +466,54 @@ const run = (courseid, loginasurltemplate, strings, statecolours) => {
 };
 
 /**
- * Repoint the existing "Download table data as" options in the
- * "With selected users..." dropdown (#formactionid) at our own progress
- * export instead of adding a second, duplicate menu group. Core renders
- * those options with a value like
+ * Add a separate "Download progress data as" group to the
+ * "With selected users..." dropdown (#formactionid), next to core's own
+ * "Download table data as" group, which is left completely untouched.
+ * Core renders its download options with a value like
  * "bulkchange.php?operation=download_participants&dataformat=csv" (see
- * user/index.php); we detect the dataformat from that URL and rewrite the
- * option's value to point at our export endpoint with the same format,
- * keeping the original label so the menu looks unchanged to the user.
- *
- * Submission is then intercepted on the form itself (not the select's
- * change event): core's own bulk-action listener reacts to a custom
- * "cie:accessibleChange" event fired on blur/keydown, not a plain native
- * "change" (see lib/amd/src/custom_interaction_events.js), so racing it
- * with our own change listener is unreliable. Intercepting "submit"
- * instead works regardless of what triggered it - we just check the
- * select's current value and cancel the default submission before it
- * ever reaches action_redir.php.
+ * user/index.php); we read the available dataformats from those options
+ * and add one matching option per format pointing at our own export
+ * endpoint, so both downloads stay available side by side.
  *
  * @param {String|null} exporturl Base export URL (id + sesskey already set);
  *                                 the dataformat param is appended per
- *                                 option here. Null leaves core's own
- *                                 download options untouched.
+ *                                 option here. Null adds nothing.
+ * @param {String} grouplabel Label for the new option group.
  */
-const setupProgressDownloadOption = (exporturl) => {
+const setupProgressDownloadOption = (exporturl, grouplabel) => {
     const select = document.getElementById('formactionid');
     if (!select || !exporturl) {
         return;
     }
 
-    const exportvaluesbyoriginal = new Map();
-    select.querySelectorAll('option').forEach((option) => {
-        const match = option.value.match(/[?&]dataformat=([^&]+)/);
-        if (!match) {
-            return;
-        }
-        const newvalue = `${exporturl}&dataformat=${match[1]}`;
-        exportvaluesbyoriginal.set(option.value, newvalue);
-        option.value = newvalue;
-    });
-
-    if (!exportvaluesbyoriginal.size) {
+    const coreoptions = Array.prototype.filter.call(
+        select.querySelectorAll('option'),
+        (option) => /[?&]dataformat=[^&]+/.test(option.value)
+    );
+    if (!coreoptions.length) {
         return;
     }
 
-    const exportvalues = new Set(exportvaluesbyoriginal.values());
+    const group = document.createElement('optgroup');
+    group.label = grouplabel;
+    const exportvalues = new Set();
+    coreoptions.forEach((coreoption) => {
+        const dataformat = coreoption.value.match(/[?&]dataformat=([^&]+)/)[1];
+        const option = document.createElement('option');
+        option.value = `${exporturl}&dataformat=${dataformat}`;
+        option.textContent = coreoption.textContent;
+        group.appendChild(option);
+        exportvalues.add(option.value);
+    });
+
+    // Place our group right after core's download group (or at the end
+    // when core's options are not grouped).
+    const coregroup = coreoptions[0].closest('optgroup');
+    if (coregroup) {
+        coregroup.after(group);
+    } else {
+        select.appendChild(group);
+    }
 
     const doExport = (action) => {
         const checkedInputs = select.form.querySelectorAll('input[type="checkbox"][name^="user"]:checked');
@@ -562,19 +567,21 @@ const setupProgressDownloadOption = (exporturl) => {
 export const init = async(courseid, loginasurltemplate, statecolours, exporturl) => {
     courseid = parseInt(courseid, 10);
 
-    const [actionscolumn, sendemail, sendmessage, badgesearned, loginas, progressbar] = await getStrings([
-        {key: 'actionscolumn', component: 'local_participants_report_actions'},
-        {key: 'sendemail', component: 'local_participants_report_actions'},
-        {key: 'sendmessage', component: 'local_participants_report_actions'},
-        {key: 'badgesearned', component: 'local_participants_report_actions', param: '%'},
-        {key: 'loginas', component: 'local_participants_report_actions'},
-        {key: 'progressbar', component: 'local_participants_report_actions'},
-    ]);
+    const [actionscolumn, sendemail, sendmessage, badgesearned, loginas, progressbar, downloadprogressas] =
+        await getStrings([
+            {key: 'actionscolumn', component: 'local_participants_report_actions'},
+            {key: 'sendemail', component: 'local_participants_report_actions'},
+            {key: 'sendmessage', component: 'local_participants_report_actions'},
+            {key: 'badgesearned', component: 'local_participants_report_actions', param: '%'},
+            {key: 'loginas', component: 'local_participants_report_actions'},
+            {key: 'progressbar', component: 'local_participants_report_actions'},
+            {key: 'downloadprogressas', component: 'local_participants_report_actions'},
+        ]);
 
     const strings = {actionscolumn, sendemail, sendmessage, badgesearned, loginas, progressbar};
 
     run(courseid, loginasurltemplate, strings, statecolours);
-    setupProgressDownloadOption(exporturl);
+    setupProgressDownloadOption(exporturl, downloadprogressas);
 
     // Re-run after every dynamic refresh (search/filter/sort/page change),
     // since the table DOM node is fully replaced each time.

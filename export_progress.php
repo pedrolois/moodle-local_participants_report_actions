@@ -58,6 +58,15 @@ $course = get_course($courseid);
 $context = context_course::instance($courseid);
 require_login($course);
 require_capability('moodle/course:viewparticipants', $context);
+require_capability('local/participants_report_actions:export', $context);
+
+if (!get_config('local_participants_report_actions', 'enableexport')) {
+    throw new moodle_exception('exportdisabled', 'local_participants_report_actions');
+}
+
+// The posted ids come from the browser: only export users who are
+// participants of this course and visible to the current user.
+$userids = \local_participants_report_actions\local\participants::filter_visible_userids($course, $context, $userids);
 
 if (empty($userids)) {
     redirect(new moodle_url('/user/index.php', ['id' => $courseid]), get_string('noselectedusers', 'bulkusers'));
@@ -82,12 +91,20 @@ if (!empty($activities)) {
     }
 }
 
+// Only export the email when it is one of the identity fields the current
+// user may see here (site "showuseridentity" setting plus
+// moodle/site:viewuseridentity), same rule core's own participant
+// download follows.
+$includeemail = in_array('email', \core_user\fields::get_identity_fields($context), true);
+
 $columnnames = [
     'userid' => get_string('exportcolumnuserid', 'local_participants_report_actions'),
     'fullname' => get_string('exportcolumnfullname', 'local_participants_report_actions'),
-    'email' => get_string('email'),
-    'progresspercent' => get_string('exportcolumnprogresspercent', 'local_participants_report_actions'),
 ];
+if ($includeemail) {
+    $columnnames['email'] = get_string('email');
+}
+$columnnames['progresspercent'] = get_string('exportcolumnprogresspercent', 'local_participants_report_actions');
 foreach ($activities as $cmid => $cm) {
     $columnnames['activity' . $cmid] = $cm->get_formatted_name();
 }
@@ -103,7 +120,9 @@ foreach ($userids as $userid) {
     $record = new stdClass();
     $record->userid = $userid;
     $record->fullname = fullname($users[$userid]);
-    $record->email = $users[$userid]->email;
+    if ($includeemail) {
+        $record->email = $users[$userid]->email;
+    }
     $record->progresspercent = $progress === null ? '' : round($progress) . '%';
 
     foreach ($activities as $cmid => $cm) {

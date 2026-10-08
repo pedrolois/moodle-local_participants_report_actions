@@ -16,20 +16,13 @@
 
 namespace local_participants_report_actions\external;
 
-if (!class_exists(\core_external\external_api::class)) {
-    class_alias(\external_api::class, \core_external\external_api::class);
-    class_alias(\external_function_parameters::class, \core_external\external_function_parameters::class);
-    class_alias(\external_multiple_structure::class, \core_external\external_multiple_structure::class);
-    class_alias(\external_single_structure::class, \core_external\external_single_structure::class);
-    class_alias(\external_value::class, \core_external\external_value::class);
-}
-
 use context_course;
 use core_external\external_api;
 use core_external\external_function_parameters;
 use core_external\external_multiple_structure;
 use core_external\external_single_structure;
 use core_external\external_value;
+use local_participants_report_actions\local\participants;
 
 /**
  * Batched lookup of per-participant extras (email, messaging, progress, badges)
@@ -79,6 +72,10 @@ class get_participant_extras extends external_api {
 
         require_capability('moodle/course:viewparticipants', $context);
 
+        // Only ever return data for users who are participants of this
+        // course (and visible to the caller under the course's group mode).
+        $userids = participants::filter_visible_userids($course, $context, $userids);
+
         if (empty($userids)) {
             return [];
         }
@@ -86,8 +83,13 @@ class get_participant_extras extends external_api {
         // Each feature only runs when it is both enabled site-wide (admin
         // setting) and the current user holds the matching capability in
         // this course context - checked once here, rather than per row.
+        // Email additionally follows core's own identity rule (site
+        // "showuseridentity" setting plus moodle/site:viewuseridentity), so
+        // this plugin never shows an email the Participants report itself
+        // would hide.
         $showemail = get_config('local_participants_report_actions', 'enablesendemail')
-            && has_capability('local/participants_report_actions:sendemail', $context);
+            && has_capability('local/participants_report_actions:sendemail', $context)
+            && in_array('email', \core_user\fields::get_identity_fields($context), true);
         $showmessage = get_config('local_participants_report_actions', 'enablesendmessage')
             && has_capability('local/participants_report_actions:sendmessage', $context);
         $showprogress = get_config('local_participants_report_actions', 'enableprogress')
