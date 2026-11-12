@@ -1,0 +1,21 @@
+# camp listing manifest (https://github.com/camp-registry/camp-docs/blob/main/AUTHORS.md).
+# Ingested and hash-pinned by camp at each tagged release.
+
+name: Participants report actions
+summary: An "Actions" column on the course Participants report with email, message, log in as, progress and badges.
+description: |
+  Puts the actions teachers and managers reach for most right on the course
+  Participants report, instead of a detour through messaging, reports or a
+  separate block.
+
+  - Send email (mailto) and send a Moodle message to the participant
+  - Log in as the participant, with core's confirmation flow
+  - Course progress bar with a per-activity breakdown (completed, submitted,
+    overdue, not yet due)
+  - Earned course badges
+  - Progress export next to core's "Download table data as" options
+labels:
+  - fully-free
+links:
+  docs: https://github.com/pedrolois/moodle-local_participants_report_actions#readme
+  issues: https://github.com/pedrolois/moodle-local_participants_report_actions/issues
